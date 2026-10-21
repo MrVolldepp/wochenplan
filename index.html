@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Wochenplan</title>
+  <meta name="description" content="Aufgaben im Wochenplan, offline nutzbar, Abgleich über OneDrive">
+  <meta name="theme-color" content="#1f3a68">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png" type="image/png">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="app.css?v=1">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <h1>Wochenplan</h1>
+      <div class="weeknav">
+        <button class="icon-btn" id="prevWeek" aria-label="Vorherige Woche">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+        </button>
+        <span class="weeklabel" id="weekLabel"></span>
+        <button class="icon-btn" id="nextWeek" aria-label="Nächste Woche">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
+        </button>
+        <button class="text-btn" id="todayBtn">Heute</button>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="sync-btn" id="syncBtn" aria-label="Synchronisierung" data-state="local">
+        <svg viewBox="0 0 24 24" aria-hidden="true" class="cloud"><path d="M7 18h10.5a4 4 0 0 0 .4-8A6 6 0 0 0 6.3 11 3.5 3.5 0 0 0 7 18z"/></svg>
+        <span class="sync-dot" aria-hidden="true"></span>
+        <span class="sync-text" id="syncText"></span>
+      </button>
+      <button class="icon-btn" id="settingsBtn" aria-label="Einstellungen">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+      </button>
+      <button class="add-btn" id="addBtn" aria-label="Neue Aufgabe">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+        <span class="add-text">Neue Aufgabe</span>
+      </button>
+    </div>
+  </header>
+
+  <main id="main">
+    <!-- PC: Wochenraster -->
+    <section class="board" id="board" aria-label="Wochenansicht"></section>
+
+    <!-- Handy: Wochenleiste + Tagesliste -->
+    <section class="mobile" id="mobile" aria-label="Tagesansicht">
+      <div class="daystrip" id="dayStrip" role="tablist" aria-label="Tage der Woche"></div>
+      <h2 class="dayhead" id="dayHead"></h2>
+      <div class="daylist" id="dayList"></div>
+    </section>
+  </main>
+
+  <!-- Aufgabe anlegen / bearbeiten -->
+  <dialog class="sheet" id="taskDialog" aria-labelledby="taskDialogTitle">
+    <form id="taskForm" method="dialog" novalidate>
+      <div class="sheet-head">
+        <h2 id="taskDialogTitle">Neue Aufgabe</h2>
+        <button type="button" class="icon-btn" data-close aria-label="Schließen">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+      </div>
+
+      <label class="field">
+        <span class="field-label">Aufgabe</span>
+        <input type="text" name="title" id="fTitle" maxlength="200" autocomplete="off" required placeholder="Was ist zu tun?">
+      </label>
+
+      <fieldset class="field">
+        <legend class="field-label">Bereich</legend>
+        <div class="seg seg-cat" id="fCat">
+          <label><input type="radio" name="cat" value="arbeit"><span class="cat-arbeit">Arbeit</span></label>
+          <label><input type="radio" name="cat" value="studium"><span class="cat-studium">Studium</span></label>
+          <label><input type="radio" name="cat" value="privat"><span class="cat-privat">Privat</span></label>
+        </div>
+      </fieldset>
+
+      <fieldset class="field">
+        <legend class="field-label">Wichtigkeit</legend>
+        <div class="seg" id="fPrio">
+          <label><input type="radio" name="prio" value="kurz"><span>Kurzfristig</span></label>
+          <label><input type="radio" name="prio" value="mittel"><span>Mittelfristig</span></label>
+          <label><input type="radio" name="prio" value="lang"><span>Langfristig</span></label>
+        </div>
+      </fieldset>
+
+      <div class="field-row">
+        <label class="field">
+          <span class="field-label">Start</span>
+          <input type="date" name="start" id="fStart" required>
+        </label>
+        <label class="field">
+          <span class="field-label">Fällig</span>
+          <input type="date" name="due" id="fDue" required>
+        </label>
+      </div>
+      <div class="chips" id="dueChips" aria-label="Fälligkeit schnell setzen">
+        <button type="button" data-due="0">Heute</button>
+        <button type="button" data-due="1">Morgen</button>
+        <button type="button" data-due="fri">Freitag</button>
+        <button type="button" data-due="7">+1 Woche</button>
+        <button type="button" data-due="month">+1 Monat</button>
+      </div>
+
+      <fieldset class="field">
+        <legend class="field-label">Wiederholen</legend>
+        <div class="seg seg-4" id="fRepeat">
+          <label><input type="radio" name="repeat" value="none"><span>Nie</span></label>
+          <label><input type="radio" name="repeat" value="daily"><span>Täglich</span></label>
+          <label><input type="radio" name="repeat" value="weekly"><span>Wöchentlich</span></label>
+          <label><input type="radio" name="repeat" value="monthly"><span>Monatlich</span></label>
+        </div>
+      </fieldset>
+      <label class="field" id="untilField" hidden>
+        <span class="field-label">Wiederholen bis <small>(leer = ohne Ende)</small></span>
+        <input type="date" name="until" id="fUntil">
+      </label>
+
+      <label class="field">
+        <span class="field-label">Notiz <small>(optional)</small></span>
+        <textarea name="note" id="fNote" rows="2" maxlength="2000"></textarea>
+      </label>
+
+      <p class="form-error" id="formError" role="alert" hidden></p>
+      <p class="form-meta" id="formMeta" hidden></p>
+
+      <div class="sheet-foot">
+        <button type="button" class="danger-btn" id="deleteBtn" hidden>Löschen</button>
+        <button type="button" class="ghost-btn" id="toggleDoneBtn" hidden>Erledigt</button>
+        <span class="spacer"></span>
+        <button type="button" class="ghost-btn" data-close>Abbrechen</button>
+        <button type="submit" class="primary-btn" id="saveBtn">Anlegen</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Einstellungen -->
+  <dialog class="sheet" id="settingsDialog" aria-labelledby="settingsTitle">
+    <div class="sheet-head">
+      <h2 id="settingsTitle">Einstellungen</h2>
+      <button type="button" class="icon-btn" data-close aria-label="Schließen">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+
+    <section class="set-block">
+      <h3>OneDrive</h3>
+      <p class="set-status" id="odStatus"></p>
+      <div class="set-actions">
+        <button type="button" class="primary-btn" id="loginBtn">Mit Microsoft anmelden</button>
+        <button type="button" class="ghost-btn" id="syncNowBtn">Jetzt synchronisieren</button>
+        <button type="button" class="ghost-btn" id="logoutBtn">Abmelden</button>
+      </div>
+    </section>
+
+    <section class="set-block">
+      <h3>Ansicht</h3>
+      <label class="toggle">
+        <input type="checkbox" id="optEscalate">
+        <span>Aufgaben, die heute oder morgen fällig sind, immer bei „Kurzfristig“ einsortieren</span>
+      </label>
+      <label class="toggle">
+        <input type="checkbox" id="optShowDone">
+        <span>Erledigte Aufgaben ausgegraut anzeigen</span>
+      </label>
+    </section>
+
+    <section class="set-block">
+      <h3>Sicherung</h3>
+      <div class="set-actions">
+        <button type="button" class="ghost-btn" id="exportBtn">Als Datei sichern</button>
+        <label class="ghost-btn file-btn">Sicherung einlesen<input type="file" id="importInput" accept="application/json,.json"></label>
+      </div>
+    </section>
+    <p class="set-foot" id="versionInfo"></p>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden>
+    <span id="toastText"></span>
+    <button type="button" id="toastAction"></button>
+  </div>
+
+  <script src="config.js?v=1"></script>
+  <script src="core.js?v=1" defer></script>
+  <script src="vendor/msal-browser.min.js?v=4.30.0" defer></script>
+  <script src="app.js?v=2" defer></script>
+</body>
+</html>
